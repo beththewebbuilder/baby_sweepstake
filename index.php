@@ -38,11 +38,18 @@ $weight_winner = $wpdb->get_row("SELECT * FROM $table ORDER BY weight_points DES
 $length_winner = $wpdb->get_row("SELECT * FROM $table ORDER BY length_points DESC LIMIT 1");
 $arrival_winner = $wpdb->get_row("SELECT * FROM $table ORDER BY arrival_total_points DESC LIMIT 1");
 
-function get_prediction_card_styles($difference, $points) {
-    if ($showResults) {
+function create_prediction_card($showResults, $header, $prediction, $secondary_prediction, $showDifference, $differenceSymbol, $difference, $points, $showSuccess) {
+    $showValuesClass = "";
+    $exactMatchClass = ($difference == 0) ? '' : 'd-none';
+    $showDifferenceClass = (($difference == 0) || !$showDifference) ? 'd-none' : '';
+    $showSecondaryValue = empty($secondary_prediction) ? 'd-none' : '';
+    $pointPlus = "+";
+
+    if (!$showResults) {
         $class = 'border-light';
+        $showValuesClass = "d-none";
     }
-    elseif ($difference == 0) {
+    elseif ($difference == 0 || $showSuccess) {
         $class = 'border-success bg-success-subtle';
     }
     elseif ($points > 0) {
@@ -50,8 +57,24 @@ function get_prediction_card_styles($difference, $points) {
     }
     else {
         $class = 'border-secondary bg-light';
+        $pointPlus = "";
     }
-    return $class;
+
+    return '<div class="col-6 col-md-3 mb-3">
+        <div class="border rounded p-3 h-100' . $class .'">
+            <div class="small text-muted">'. $header .'</div>
+            <div class="fs-5">'. $prediction .'
+            <small class="text-muted '.$showSecondaryValue.'">
+                ('.$secondary_prediction.')
+            </small></div>
+            <div class="'. $showValuesClass .'">
+                <hr class="my-2">
+                <div class="'.$exactMatchClass.' text-success fw-bold small">🎯 Exact match!</div>
+                <div class="'.$showDifferenceClass.' small text-muted">'.$difference.'</div>
+                <div class="fw-bold mt-1">'. $pointPlus . $points .'pts</div>
+            </div>
+        </div>
+    </div>';
 }
 ?>
 
@@ -81,7 +104,7 @@ function get_prediction_card_styles($difference, $points) {
             <h1>The results are in!</h1>
             <p> Find out how you did!</p>
             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#howScoringWorks">
-                <small>Remind me, how does scoring work?</small>
+                <small>Remind me, how was the scoring calculated?</small>
             </button>
     <?php endif; ?>
 
@@ -416,164 +439,55 @@ function get_prediction_card_styles($difference, $points) {
             </div>
 
             <!-- Their prediction -->
+            <!-- create_prediction_card($showResults, $header, $prediction, $secondary_prediction, $showDifference, $differenceSymbol, $difference, $points, $showSuccess) -->
             <div class="row text-center">
-
-                <!-- Gender Card -->
                 <?php
+                    //Gender Card 
                     if($guess->gender_correct ? $gender_difference = 0 : $gender_difference = 1);
+                    echo create_prediction_card($showResults, 'Gender', ucfirst(esc_html($guess->gender)), null, false, null, $gender_difference, $guess->gender_points, null);
+
+                    //Weight Card
+                    $grams = (int)$guess->weight;
+                    $lbs = floor($grams / 453.59237);
+                    $oz = round(($grams - ($lbs * 453.59237)) / 28.3495);
+                    $weight_guess  = $lbs . "lb " . $oz . "oz";
+                    $weight_guess_kg = round(($grams / 1000), 2) . "kg";
+                    $difference_symbol = ($guess->weight_difference < 0 ? '+' : '');
+                    $weight_difference = (round($guess->weight_difference / 1000, 2) * -1) . "kg";
+                    echo create_prediction_card($showResults, 'Weight', $weight_guess, $weight_guess_kg, true, $difference_symbol, $weight_difference, $guess->weight_points, null);
+
+                    //Length Card
+                    $length_guess  = $guess->length . "cm";
+                    $difference_symbol = ($guess->length_difference < 0 ? '+' : '');
+                    $length_difference = $guess->length_difference . "cm";
+                    echo create_prediction_card($showResults, 'Length', $length_guess, null, true, $difference_symbol, $length_difference, $guess->length_points, null);
+
+                    //Arrival Card
+                    $arrival_date_guess  = date('j M Y', strtotime($guess->arrival));
+                    $arrival_time_guess  = date('H:i', strtotime($guess->arrival));
+                    $arrival_points = $guess->arrival_total_points;
+                    $showSuccess = null;
+
+                    $day_diff = $guess->arrival_day_difference;
+                    $time_diff = $guess->arrival_time_difference;
+                    $arrival_difference;
+                    if($arrival_day_diff == 0) {
+                        $showSuccess = true;
+                        $arrival_difference = "<span class='text-success fw-bold'>✅ Correct date</span><br> 🕑 Time off by " . $time_diff . " hrs";
+                    }
+                    elseif($day_diff > 0) {
+                        // >0 = days after
+                        $day_string = $day_diff == 1 ? 'day' : 'days';
+                        $arrival_difference = "📆 ". $day_diff . " " . $day_string . " late";
+                    }
+                    else {
+                        $day_string = $day_diff == -1 ? 'day' : 'days';
+                        $arrival_difference = "📆 ". ($day_diff * -1) . " " . $day_string . " early";
+                    }
+
+                    $length_difference = $guess->length_difference . "cm";
+                    echo create_prediction_card($showResults, 'Arrival', $arrival_date_guess, $arrival_time_guess, true, null, $arrival_difference, $arrival_points, $showSuccess);
                 ?>
-                <div class="col-6 col-md-3 mb-3">
-                    <div class="border rounded p-3 h-100 <?= get_prediction_card_styles($gender_difference, $guess->gender_points); ?>">
-                        
-
-                        <div class="small text-muted">Gender</div>
-
-                        <div class="fs-5">
-                            <?php echo ucfirst(esc_html($guess->gender)); ?>
-                        </div>
-
-                        <?php if ($showResults): 
-                            if($guess->gender_correct): ?>
-                                <small class="fw-bold text-success">
-                                    ✅ <?php echo esc_html($guess->gender_points); ?> pts
-                                </small>
-                                <?php else: ?>
-                                <small class="fw-bold text-secondary">
-                                    ❌ <?php echo esc_html($guess->gender_points); ?> pts
-                                </small>
-                            <?php endif; ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-3 mb-3">
-
-<?php
-if (!$showResults) {
-    $class = 'border-light';
-}
-elseif ($guess->weight_difference == 0) {
-    $class = 'border-success bg-success-subtle';
-}
-elseif ($guess->weight_points > 0) {
-    $class = 'border-primary bg-primary-subtle';
-}
-else {
-    $class = 'border-secondary bg-light';
-}
-?>
-
-<div class="border rounded p-3 h-100 <?= $class; ?>">
-
-    <div class="small text-muted mb-2">
-        ⚖️ Weight
-    </div>
-
-    <div class="fw-semibold">
-        <?php
-            echo esc_html($lbs . 'lb ' . $oz . 'oz');
-        ?>
-    </div>
-
-    <small class="text-muted">
-        <?= round($grams / 1000, 2); ?>kg
-    </small>
-
-    <?php if ($showResults): ?>
-
-        <hr class="my-2">
-
-        <?php if ($guess->weight_difference == 0): ?>
-
-            <div class="text-success fw-bold">
-                🎯 Exact match!
-            </div>
-
-        <?php else: ?>
-
-            <div class="small text-muted">
-                <?= ($guess->weight_difference > 0 ? '+' : '') ?>
-                <?= round($guess->weight_difference / 1000, 2); ?>kg
-            </div>
-
-        <?php endif; ?>
-
-        <div class="fw-bold mt-1">
-            <?= $guess->weight_points ?> pts
-        </div>
-
-    <?php endif; ?>
-
-</div>
-
-</div>
-
-                <!-- Weight Card -->
-                <div class="col-6 col-md-3 mb-3">
-                    <div class="border rounded p-3 h-100 <?= get_prediction_card_styles($guess->weight_difference, $guess->weight_points); ?>">
-                                
-                    <div class="fw-bold">Weight</div>
-                    <?php if ($showResults && ($guess->weight_difference == 0)): ?>
-                        ✅
-                    <?php endif; ?>
-                    <?php
-                        $grams = (int)$guess->weight;
-                        $lbs = floor($grams / 453.59237);
-                        $oz = round(($grams - ($lbs * 453.59237)) / 28.3495);
-                        echo esc_html($lbs . "lb " . $oz . "oz");
-                    ?> <em>(<?php echo esc_html(round(($grams / 1000), 2));?>kg)</em>
-
-                    <?php if ($showResults): ?>
-                        <br >
-                        <span class="badge <?= ($guess->weight_points > 0) ? 'bg-success' : 'bg-secondary'; ?>">
-                            <?php echo esc_html($guess->weight_points); ?> pts
-                        </span>
-                        <?php if ($guess->weight_difference != 0): ?>
-                            <span class="badge bg-info">
-                                <?php echo esc_html(($guess->weight_difference/1000) * -1); ?>kg
-                            </span>
-                        <?php endif; ?>
-                    <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-3">
-                    <div class="fw-bold">Length</div>
-                    <?php if ($showResults && ($guess->length_difference == 0)): ?>
-                        ✅
-                    <?php endif; ?>
-                    <?php echo esc_html($guess->length);?>cm
-
-                    
-                    <?php if ($showResults): ?>
-                        <br >
-                        <span class="badge <?= ($guess->length_points > 0) ? 'bg-success' : 'bg-secondary'; ?>">
-                            <?php echo esc_html($guess->length_points); ?> pts
-                        </span>
-                        <?php if ($guess->length_difference != 0): ?>
-                            <span class="badge bg-info">
-                                <?php echo esc_html($guess->length_difference); ?>cm
-                            </span>
-                        <?php endif; ?>
-                    <?php endif; ?>
-                </div>
-
-                <div class="col-6 col-md-3">
-                    <div class="fw-bold">Arrival</div>
-                    <?php echo esc_html(date('j M Y H:i', strtotime($guess->arrival))); ?>
-
-                    <?php if ($showResults): ?>
-                        <br >
-                        <span class="badge <?= ($guess->arrival_date_points > 0) ? 'bg-success' : 'bg-secondary'; ?>">
-                            Date: <?php echo esc_html($guess->arrival_date_points); ?> pts
-                        </span>
-                        <?php if ($guess->arrival_time_difference > 0): ?>
-                            <span class="badge bg-info">
-                                Time: <?php echo esc_html($guess->arrival_time_points); ?> pts
-                            </span>
-                        <?php endif; ?>
-                    <?php endif; ?>
-                </div>
 
             </div>
 
@@ -583,8 +497,8 @@ else {
     <?php endforeach; ?>
 
     <?php if (!$showResults): ?>
-    <button type="button" class="guess-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Make your guess">
-        Make your guess
+    <button type="button" class="guess-btn btn btn-success" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Make your guess">
+        + Add your guess
     </button>
     <?php endif; ?>
 

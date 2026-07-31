@@ -21,7 +21,9 @@ if (isset($_POST['save_results'])) {
     update_option('baby_length', floatval($_POST['length']));    // cm
     update_option('baby_arrival', sanitize_text_field($_POST['arrival']));
 
-    echo '<div class="container mt-3"><div class="alert alert-success">🎉 Baby results saved successfully!</div></div>';
+    calculate_baby_sweepstake_results();
+
+    echo '<div class="container mt-3"><div class="alert alert-success">🎉 Baby results saved & winners calculated successfully!</div></div>';
 }
 
 // Save point form
@@ -45,19 +47,6 @@ if(isset($_POST['save_points'])) {
     update_option('total_points', intval($totalPoints));
 
     echo '<div class="container mt-3"><div class="alert alert-success">🎉 Guess points saved successfully!</div></div>';
-}
-
-// Calculate results
-if (isset($_POST['calculate_results'])) {
-
-    check_admin_referer('calculate_baby_results');
-
-    calculate_baby_sweepstake_results();
-
-    echo '<div class="alert alert-success">
-        🎉 Results calculated successfully!
-    </div>';
-
 }
 
 // Read existing values
@@ -85,26 +74,8 @@ $total_points = get_option('total_points', '');
 
 <div class="container py-5">    
 
-    <div class="row mt-4">
-        <div class="col-12 text-center">
-            <form method="post">
-                <?php wp_nonce_field('calculate_baby_results'); ?>
-
-                <button
-                    type="submit"
-                    class="btn btn-primary btn-lg"
-                    name="calculate_results">
-
-                    🧮 Calculate Results
-
-                </button>
-
-            </form>
-        </div>
-    </div>
-
     <div class="row">
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-xl-6 mt-4">
             <h1>👶 Baby Results</h1>
 
             <form method="post">
@@ -186,16 +157,17 @@ $total_points = get_option('total_points', '');
                 </div>
 
                 <button 
-                    class="btn btn-success"
+                    class="btn btn-success btn-lg"
                     type="submit"
                     name="save_results">
-                    💾 Save Results
+                    💾 Save Results & Calculate Winners
                 </button>
 
             </form>
         </div>
+
         <!-- score points -->
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-xl-6 mt-4">
             <h1>📈 Allocated Points</h1>
 
             <form method="post">
@@ -203,8 +175,10 @@ $total_points = get_option('total_points', '');
                 <?php wp_nonce_field('save_result_points'); ?>
 
                 <div class="row mb-3">
-                    <label class="form-label">Family name (last name)</label>
-                    <input class="form-control" name="family_name" value="<?php echo esc_attr($family_name); ?>" required>
+                    <div class="col-12">
+                        <label class="form-label">Family name (last name)</label>
+                        <input class="form-control" name="family_name" value="<?php echo esc_attr($family_name); ?>" required>
+                    </div>
                 </div>
 
                 <div class="row mb-3">
@@ -287,10 +261,10 @@ $total_points = get_option('total_points', '');
                 </div>
 
                 <button 
-                    class="btn btn-success"
+                    class="btn btn-primary btn-lg"
                     type="submit"
                     name="save_points">
-                    ✔️ Save Points
+                    Save Settings
                 </button>
 
             </form>

@@ -128,8 +128,8 @@ function calculate_baby_sweepstake_results() {
             ],
             ['User_ID' => $guess->User_ID]
         );
-        var_dump($result);
-        echo $wpdb->last_error;
+        //var_dump($result);
+        //echo $wpdb->last_error;
     }
 }
 
@@ -226,7 +226,7 @@ function calculate_arrival_points($guess, $arrival) {
         $baby_arrival->setTime(0, 0, 0);
 
         $difference = $guess_date->diff($baby_arrival);
-        $days_apart = $difference->days;
+        $days_apart = $difference->invert ? -$difference->days : $difference->days;
 
         $date_points_to_subtract = 1 * abs($days_apart * $day_deduction);
         $date_points = $total_date_points - $date_points_to_subtract;

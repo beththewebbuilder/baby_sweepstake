@@ -111,13 +111,14 @@ Recommended WordPress APIs:
 
 ## Future Improvements
 
-* CSV export of entries.
+* Show/hide length if not available.
+* Allow edit or delete of own entry.
 * Opening and closing dates.
 * Admin dashboard statistics.
-* Email notifications.
 * Tie-breaker support.
-* Multiple competitions.
 * AJAX leaderboard updates.
+* CSV export of entries.
+* Email notifications?
 
 ## Requirements
 

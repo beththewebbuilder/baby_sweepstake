@@ -28,6 +28,7 @@ if (isset($_POST['save_results'])) {
 if(isset($_POST['save_points'])) {
     check_admin_referer('save_result_points');
 
+    update_option('family_name', sanitize_text_field($_POST['family_name']));
     update_option('points_gender_correct', intval($_POST['points_gender_correct']));
     update_option('points_gender_incorrect', intval($_POST['points_gender_incorrect']));
     update_option('points_weight_exact', intval($_POST['points_weight_exact']));
@@ -66,6 +67,7 @@ $weight  = get_option('baby_weight', '');
 $length  = get_option('baby_length', '');
 $arrival = get_option('baby_arrival', '');
 
+$family_name = get_option('family_name', '');
 $correct_gender = get_option('points_gender_correct', '');
 $incorrect_gender = get_option('points_gender_incorrect', '');
 $weight_exact = get_option('points_weight_exact', '');
@@ -199,6 +201,11 @@ $total_points = get_option('total_points', '');
             <form method="post">
 
                 <?php wp_nonce_field('save_result_points'); ?>
+
+                <div class="row mb-3">
+                    <label class="form-label">Family name (last name)</label>
+                    <input class="form-control" name="family_name" value="<?php echo esc_attr($family_name); ?>" required>
+                </div>
 
                 <div class="row mb-3">
                     <div class="col-12 col-sm-6">

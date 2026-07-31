@@ -69,7 +69,7 @@ function get_prediction_card_styles($difference, $points) {
             Guess the <strong>gender</strong>,
             <strong>weight</strong>,
             <strong>length</strong> and
-            <strong>arrival</strong> of Baby Luffman!
+            <strong>arrival</strong> of Baby <?php echo esc_html(get_option('family_name', ''));?>!
         </p>
         <p>The most accurate guesses will earn the most points - maximum <?php echo get_option('total_points'); ?> points available!</p>
             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#howScoringWorks">
@@ -180,7 +180,7 @@ function get_prediction_card_styles($difference, $points) {
             <p>The person with the <strong>highest total score wins</strong>.</p>
             <p>If two or more people finish with the same score, the winner will be decided by the closest <strong>Birth Date & Time</strong> prediction.</p>
 
-            <p class="text-muted fst-italic mt-4">These rules have been carefully documented to avoid any future Luffman debates, appeals, VAR reviews or accusations of favouritism. 😂</p>
+            <p class="text-muted fst-italic mt-4">These rules have been carefully documented to avoid any future <?php echo esc_html(get_option('family_name', ''));?> debates, appeals, VAR reviews or accusations of favouritism. 😂</p>
 
         </div>
         <div class="modal-footer">
@@ -195,10 +195,10 @@ function get_prediction_card_styles($difference, $points) {
 
         <div class="card bg-light border-2 border-success shadow-sm mt-4">
         <div class="card-body">
-            <h2 class="h4">🥳 Baby Luffman has arrived!</h2>
+            <h2 class="h4">🥳 Baby <?php echo esc_html(get_option('family_name', ''));?> has arrived!</h2>
 
             <div>
-                <p>The official results of Baby <strong><?php echo get_option('baby_name'); ?></strong> Luffman's grand entrance</p>
+                <p>The official results of Baby <strong><?php echo get_option('baby_name'); ?></strong> <?php echo esc_html(get_option('family_name', ''));?>'s grand entrance</p>
 
                 <div class="row text-center">
                     <div class="col-6 col-md-3">
@@ -592,7 +592,7 @@ else {
     <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
         
         <div class="offcanvas-header">
-            <h5 class="offcanvas-title caveat-brush-regular" id="offcanvasNavbarLabel">🔮 Make your Baby Luffman prediction</h5>
+            <h5 class="offcanvas-title caveat-brush-regular" id="offcanvasNavbarLabel">🔮 Make your Baby <?php echo esc_html(get_option('family_name', ''));?> prediction</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
@@ -600,8 +600,8 @@ else {
 
                 <?php wp_nonce_field('baby_guess_nonce', 'baby_guess_nonce'); ?>
 
-                <p>No pressure... but remember, the Luffman family will be checking the leaderboard.</p>
-                <p>Fill out your guesses for Baby Luffman below and click the submit button when you're finished!</p>
+                <p>No pressure... but remember, the <?php echo esc_html(get_option('family_name', ''));?> family will be checking the leaderboard.</p>
+                <p>Fill out your guesses for Baby <?php echo esc_html(get_option('family_name', ''));?> below and click the submit button when you're finished!</p>
 
                 <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#howScoringWorks">
                     <small>How does scoring work?</small>

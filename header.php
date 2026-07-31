@@ -16,13 +16,13 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="<?php get_bloginfo('description'); ?>">
 
-    <link rel="icon" href="<?php echo get_bloginfo('template_directory'); ?>/logo.png">
+    <link rel="icon" href="<?php echo get_bloginfo('template_directory'); ?>/luffman_guess_favicon.png">
     <?php wp_head(); ?>
 
-    <link rel="apple-touch-icon" href="<?php echo get_bloginfo('template_directory'); ?>/logo.png" />
-    <link rel="apple-touch-icon" sizes="72x72" href="<?php echo get_bloginfo('template_directory'); ?>/logo.png" />
-    <link rel="apple-touch-icon" sizes="114x114" href="<?php echo get_bloginfo('template_directory'); ?>/logo.png" />
-    <link rel="apple-touch-icon" sizes="144x144" href="<?php echo get_bloginfo('template_directory'); ?>/logo.png" />
+    <link rel="apple-touch-icon" href="<?php echo get_bloginfo('template_directory'); ?>/luffman_guess_favicon.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="<?php echo get_bloginfo('template_directory'); ?>/luffman_guess_favicon.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="<?php echo get_bloginfo('template_directory'); ?>/luffman_guess_favicon.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="<?php echo get_bloginfo('template_directory'); ?>/luffman_guess_favicon.png" />
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tsparticles/confetti@3.0.3/tsparticles.confetti.bundle.min.js"></script>

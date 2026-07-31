@@ -81,7 +81,7 @@ $weight_winner = $wpdb->get_row("SELECT * FROM $table ORDER BY weight_points DES
 $length_winner = $wpdb->get_row("SELECT * FROM $table ORDER BY length_points DESC LIMIT 1");
 $arrival_winner = $wpdb->get_row("SELECT * FROM $table ORDER BY arrival_total_points DESC LIMIT 1");
 
-function create_prediction_card($showResults, $header, $prediction, $secondary_prediction, $showDifference, $differenceSymbol, $difference, $points, $showSuccess) {
+function create_prediction_card($showResults, $header, $prediction, $secondary_prediction, $showDifference, $differenceSymbol, $difference, $differenceMetric, $points, $showSuccess) {
     $showValuesClass = "";
     $exactMatchClass = ($difference == 0) ? '' : 'd-none';
     $showDifferenceClass = (($difference == 0) || !$showDifference) ? 'd-none' : '';
@@ -113,7 +113,7 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
             <div class="'. $showValuesClass .'">
                 <hr class="my-2">
                 <div class="'.$exactMatchClass.' text-success fw-bold small">🎯 Exact match!</div>
-                <div class="'.$showDifferenceClass.' small text-muted">'.$difference.'</div>
+                <div class="'.$showDifferenceClass.' small text-muted">'. $differenceSymbol . $difference . $differenceMetric . '</div>
                 <div class="fw-bold mt-1">'. $pointPlus . $points .'pts</div>
             </div>
         </div>
@@ -269,32 +269,44 @@ get_header();
 
                 <div class="row text-center">
                     <div class="col-6 col-md-3">
-                        <strong>Gender</strong>
-                        <br>
-                        <?php echo ucfirst(get_option('baby_gender')); ?>
+                        <div class="border rounded p-3 border-lg h-100">
+                            <div><strong>Gender</strong></div>
+                            <div class="fs-5">
+                                <?php echo ucfirst(get_option('baby_gender')); ?>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-6 col-md-3">
-                        <strong>Born</strong>
-                        <br>
-                        <?php echo esc_html(date('j M Y H:i', strtotime(get_option('baby_arrival')))); ?>
+                        <div class="border rounded p-3 border-lg h-100">
+                            <div><strong>Born</strong></div>
+                            <div class="fs-5">
+                                <?php echo esc_html(date('j M Y H:i', strtotime(get_option('baby_arrival')))); ?>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-6 col-md-3 mt-3 mt-md-0">
-                        <strong>Weight</strong>
-                        <br>
-                        <?php
-                            $grams_result = (int)get_option('baby_weight');;
-                            $lbs_result = floor($grams_result / 453.59237);
-                            $oz_result = round(($grams_result - ($lbs_result * 453.59237)) / 28.3495);
-                            echo esc_html($lbs_result . "lb " . $oz_result . "oz");
-                        ?> (<?php echo esc_html(round(($grams_result / 1000), 2));?>kg)
+                        <div class="border rounded p-3 border-lg h-100">
+                            <div><strong>Weight</strong></div>
+                            <div class="fs-5">
+                                <?php
+                                $grams_result = (int)get_option('baby_weight');;
+                                $lbs_result = floor($grams_result / 453.59237);
+                                $oz_result = round(($grams_result - ($lbs_result * 453.59237)) / 28.3495);
+                                echo esc_html($lbs_result . "lb " . $oz_result . "oz");
+                            ?> (<?php echo esc_html(round(($grams_result / 1000), 2));?>kg)
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-6 col-md-3 mt-3 mt-md-0">
-                        <strong>Length</strong>
-                        <br>
-                        <?php echo get_option('baby_length'); ?>cm
+                        <div class="border rounded p-3 border-lg h-100">
+                            <div><strong>Length</strong></div>
+                            <div class="fs-5">
+                                <?php echo get_option('baby_length'); ?>cm
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -308,35 +320,23 @@ get_header();
         <div class="card-body">
             <h2 class="h4">🏅 Leaderboard</h2>
             <div class="row text-center">
-                <div class="col-12 col-md-4">
-                    <strong>1st</strong>
-                    <br>
-                    <?php echo esc_html($top_winners[0]->name); ?> 
-                    <br>
-                    <span class="badge bg-warning">
-                     <?php echo esc_html($top_winners[0]->total_points); ?>pts
-                    </span>
-                </div>
-
-                <div class="col-12 col-md-4 mt-3 mt-md-0">
-                    <strong>2nd</strong>
-                    <br>
-                    <?php echo esc_html($top_winners[1]->name); ?>
-                    <br>
-                    <span class="badge bg-warning">
-                        <?php echo esc_html($top_winners[1]->total_points); ?>pts
-                    </span>
-                </div>
-
-                <div class="col-12 col-md-4 mt-3 mt-md-0">
-                    <strong>3rd</strong>
-                    <br>
-                    <?php echo esc_html($top_winners[2]->name); ?>
-                    <br>
-                    <span class="badge bg-warning">
-                        <?php echo esc_html($top_winners[2]->total_points); ?>pts
-                    </span>
-                </div>
+                <?php 
+                $positions = ['1st', '2nd', '3rd'];
+                $index = 0;
+                foreach ($top_winners as $winner) : ?>
+                    <div class="col-12 col-md-4 mb-3">
+                        <div class="border rounded p-3 border-lg">
+                            <div><strong><?php echo $positions[$index]; ?></strong></div>
+                            <div class="fs-5">
+                                <?php echo esc_html($winner->name);?>
+                                <br>
+                                <small class="text-muted"><?php echo esc_html($winner->total_points);?>pts</small>
+                            </div>
+                        </div>
+                    </div>
+                <?php 
+                $index += 1;
+                endforeach; ?>
             </div>
         </div>
     </div>
@@ -349,41 +349,41 @@ get_header();
             <h2 class="h4">🎯 Closest Predictions</h2>
             <div class="row text-center">
                 <div class="col-12 col-md-4">
-                    <strong>Arrival</strong>
-                    <br>
-                    <?php echo esc_html($arrival_winner->name); ?> - 
-                    (<?php echo esc_html(date('j M Y H:i', strtotime($arrival_winner->arrival)));?>)
-                    <br>
-                    <span class="badge bg-success">
-                        <?php echo esc_html($arrival_winner->arrival_total_points);?>pts
-                    </span>
+                    <div class="border rounded p-3 border-lg">
+                        <div class="small text-muted">Arrival</div>
+                        <div class="fs-5">
+                            <?php echo esc_html(date('j M Y H:i', strtotime($arrival_winner->arrival)));?>
+                            <br>
+                            <small class="text-muted"><?php echo esc_html($arrival_winner->name); ?> - <?php echo esc_html($arrival_winner->arrival_total_points);?>pts</small>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-12 col-md-4 mt-3 mt-md-0">
-                    <strong>Weight</strong>
-                    <br>
-                    <?php echo esc_html($weight_winner->name); ?> - 
-                    <?php
-                        $grams_win = (int)$weight_winner->weight;
-                        $lbs_win = floor($grams_win / 453.59237);
-                        $oz_win = round(($grams_win - ($lbs_win * 453.59237)) / 28.3495); 
-                        echo esc_html($lbs_win . "lb " . $oz_win . "oz");
-                    ?> (<?php echo esc_html(round(($grams_win / 1000), 2));?>kg)
-                    <br>
-                    <span class="badge bg-success">
-                        <?php echo esc_html($weight_winner->weight_points);?>pts
-                    </span>
+                    <div class="border rounded p-3 border-lg">
+                        <div class="small text-muted">Weight</div>
+                        <div class="fs-5">
+                            <?php
+                                $grams_win = (int)$weight_winner->weight;
+                                $lbs_win = floor($grams_win / 453.59237);
+                                $oz_win = round(($grams_win - ($lbs_win * 453.59237)) / 28.3495); 
+                                echo esc_html($lbs_win . "lb " . $oz_win . "oz");
+                            ?> (<?php echo esc_html(round(($grams_win / 1000), 2));?>kg)
+                            <br>
+                            <small class="text-muted"><?php echo esc_html($weight_winner->name); ?> - <?php echo esc_html($weight_winner->weight_points);?>pts</small>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-12 col-md-4 mt-3 mt-md-0">
-                    <strong>Length</strong>
-                    <br>
-                    <?php echo esc_html($length_winner->name); ?> - 
-                    (<?php echo esc_html($length_winner->length);?>cm)
-                    <br>
-                    <span class="badge bg-success">
-                        <?php echo esc_html($length_winner->length_points);?>pts
-                    </span>
+                    <div class="border rounded p-3 border-lg">
+                        <div class="small text-muted">Length</div>
+                        <div class="fs-5">
+                            <?php echo esc_html($length_winner->length);?>cm
+                            <br>
+                            <small class="text-muted"><?php echo esc_html($length_winner->name); ?> - <?php echo esc_html($length_winner->length_points);?>pts</small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -403,48 +403,60 @@ get_header();
 
             <div class="row text-center">
                 <div class="col-6 col-md-2">
-                    <strong>Total Guesses</strong>
-                    <br>
-                    <?php echo esc_html($stats->total_guesses); ?>
+                    <div class="small text-muted">Total Guesses</div>
+                    <div class="fs-5"><?php echo esc_html($stats->total_guesses); ?></div>
                 </div>
 
                 <div class="col-6 col-md-2">
-                    <strong>Average Arrival</strong>
-                    <br>
-                    <?php echo esc_html(
-                        date(
-                            'j M Y H:i',
-                            strtotime($average_arrival)
-                        )
-                    ); ?>
-                </div>
-                <div class="col-6 col-md-2 mt-3 mt-md-0">
-                    <strong>Girls</strong>
-                    <br>
-                    <?php echo esc_html($stats->girls); ?> (<?php echo esc_html($girl_percentage);?>%)
+                    <div class="small text-muted">Average Arrival</div>
+                    <div class="fs-5">
+                        <?php echo esc_html(date('j M Y', strtotime($average_arrival))); ?>
+                        <small class="text-muted"> 
+                            <?php echo esc_html(date('H:i', strtotime($average_arrival))); ?>
+                        </small>
+                    </div>
                 </div>
 
                 <div class="col-6 col-md-2 mt-3 mt-md-0">
-                    <strong>Boys</strong>
-                    <br>
-                    <?php echo esc_html($stats->boys); ?> (<?php echo esc_html($boy_percentage);?>%)
+                    <div class="small text-muted">Girls</div>
+                    <div class="fs-5">
+                        <?php echo esc_html($stats->girls); ?>
+                        <small class="text-muted"> 
+                            (<?php echo esc_html($girl_percentage);?>%)
+                        </small>
+                    </div>
                 </div>
 
                 <div class="col-6 col-md-2 mt-3 mt-md-0">
-                    <strong>Average Length</strong>
-                    <br>
-                    <?php echo esc_html($average_length) ?>cm
+                    <div class="small text-muted">Boys</div>
+                    <div class="fs-5">
+                        <?php echo esc_html($stats->boys); ?>
+                        <small class="text-muted"> 
+                            (<?php echo esc_html($boy_percentage);?>%)
+                        </small>
+                    </div>
                 </div>
 
                 <div class="col-6 col-md-2 mt-3 mt-md-0">
-                    <strong>Average Weight</strong>
-                    <br>
-                    <?php
-                        $grams_avg = (int)$average_weight;
-                        $lbs_avg = floor($grams_avg / 453.59237);
-                        $oz_avg = round(($grams_avg - ($lbs_avg * 453.59237)) / 28.3495);
-                        echo esc_html($lbs_avg . "lb " . $oz_avg . "oz");
-                    ?> (<?php echo esc_html(round(($grams_avg / 1000), 2));?>kg)
+                    <div class="small text-muted">Average Length</div>
+                    <div class="fs-5">
+                        <?php echo esc_html($average_length) ?>cm
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-2 mt-3 mt-md-0">
+                    <div class="small text-muted">Average Weight</div>
+                    <div class="fs-5">
+                        <?php
+                            $grams_avg = (int)$average_weight;
+                            $lbs_avg = floor($grams_avg / 453.59237);
+                            $oz_avg = round(($grams_avg - ($lbs_avg * 453.59237)) / 28.3495);
+                            echo esc_html($lbs_avg . "lb " . $oz_avg . "oz");
+                        ?>
+                        <small class="text-muted"> 
+                            (<?php echo esc_html(round(($grams_avg / 1000), 2));?>kg)
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -457,6 +469,8 @@ get_header();
     <?php if (isset($_GET['saved'])): ?>
         <div class="alert alert-success">
             🎉 Your guess has been submitted successfully!
+            <br>
+            <small>Come back here once the baby is born to see your score!</small>
         </div>
     <?php endif; ?>
 
@@ -494,18 +508,18 @@ get_header();
             </div>
 
             <!-- Their prediction -->
-            <!-- create_prediction_card($showResults, $header, $prediction, $secondary_prediction, $showDifference, $differenceSymbol, $difference, $points, $showSuccess) -->
+            <!-- create_prediction_card($showResults, $header, $prediction, $secondary_prediction, $showDifference, $differenceSymbol, $difference, differenceMetric, $points, $showSuccess) -->
             <div class="row text-center">
                 <?php
                     //Gender Card 
                     if($guess->gender_correct ? $gender_difference = 0 : $gender_difference = 1);
-                    echo create_prediction_card($showResults, 'Gender', ucfirst(esc_html($guess->gender)), null, false, null, $gender_difference, $guess->gender_points, null);
+                    echo create_prediction_card($showResults, 'Gender', ucfirst(esc_html($guess->gender)), null, false, null, $gender_difference, null, $guess->gender_points, null);
 
                     //Length Card
                     $length_guess  = $guess->length . "cm";
-                    $difference_symbol = ($guess->length_difference < 0 ? '+' : '');
-                    $length_difference = $guess->length_difference . "cm";
-                    echo create_prediction_card($showResults, 'Length', $length_guess, null, true, $difference_symbol, $length_difference, $guess->length_points, null);
+                    $difference_symbol = ($guess->length_difference > 0 ? '+' : '');
+                    $difference_metric = "cm";
+                    echo create_prediction_card($showResults, 'Length', $length_guess, null, true, $difference_symbol, $guess->length_difference, $difference_metric, $guess->length_points, null);
 
                     //Weight Card
                     $grams = (int)$guess->weight;
@@ -513,9 +527,9 @@ get_header();
                     $oz = round(($grams - ($lbs * 453.59237)) / 28.3495);
                     $weight_guess  = $lbs . "lb " . $oz . "oz";
                     $weight_guess_kg = round(($grams / 1000), 2) . "kg";
-                    $difference_symbol = ($guess->weight_difference < 0 ? '+' : '');
-                    $weight_difference = (round($guess->weight_difference / 1000, 2) * -1) . "kg";
-                    echo create_prediction_card($showResults, 'Weight', $weight_guess, $weight_guess_kg, true, $difference_symbol, $weight_difference, $guess->weight_points, null);
+                    $difference_symbol = ($guess->weight_difference > 0 ? '+' : '');
+                    $difference_metric = "g";
+                    echo create_prediction_card($showResults, 'Weight', $weight_guess, $weight_guess_kg, true, $difference_symbol, $guess->weight_difference, $difference_metric, $guess->weight_points, null);
 
                     //Arrival Card
                     $arrival_date_guess  = date('j M Y', strtotime($guess->arrival));
@@ -541,7 +555,7 @@ get_header();
                     }
 
                     $length_difference = $guess->length_difference . "cm";
-                    echo create_prediction_card($showResults, 'Arrival', $arrival_date_guess, $arrival_time_guess, true, null, $arrival_difference, $arrival_points, $showSuccess);
+                    echo create_prediction_card($showResults, 'Arrival', $arrival_date_guess, $arrival_time_guess, true, null, $arrival_difference, null, $arrival_points, $showSuccess);
                 ?>
 
             </div>

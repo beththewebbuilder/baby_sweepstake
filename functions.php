@@ -112,7 +112,7 @@ function calculate_weight_points($guess, $weight) {
     $weight_range = get_option('points_weight_gram_deduction');
     $weight_available_pts = get_option('points_weight_exact');
 
-    $difference = $weight - $guess->weight;
+    $difference = $guess->weight - $weight;
 
     // If exact, get full points
     if($difference == 0) {
@@ -140,7 +140,7 @@ function calculate_length_points($guess, $length) {
     $length_range = get_option('points_length_cm_deduction');
     $length_available_pts = get_option('points_length_exact');
 
-    $difference = $length - $guess->length;
+    $difference = $guess->length - $length;
 
     // If exact, get full points
     if($difference == 0) {

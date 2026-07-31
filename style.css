@@ -1,0 +1,133 @@
+/*
+Theme Name: Baby Guess Theme
+Author: Bethany Fowler
+Description: Template for Baby Bean sweepstake
+Version: 0.0.1
+Tags: bootstrap
+*/
+
+html {
+    background-color: #fcf4ec;
+}
+
+.caveat-brush-regular {
+  font-family: "Caveat Brush", cursive;
+  font-weight: 400;
+  font-style: normal;
+}
+
+h1, h2, h3 {
+    font-family: "Caveat Brush", cursive;
+    text-align: center;
+}
+body {
+    margin: 2rem !important;
+    background-color: inherit !important;
+}
+.logo-header {
+    width: 15rem;
+}
+
+.modal h2 {
+    font-size: 20px;
+    text-align: left;
+    margin-top: 2rem;
+    border-top: 1px solid #ccc;
+    padding-top: 1rem;
+}
+
+.guess-btn {
+    width: 100%;
+    height: 10%;
+    left: 0;
+    bottom: 0;
+    position: fixed;
+}
+
+#sweepstake_input .form-label {
+    font-family: "Caveat Brush", cursive;
+    font-weight: 400;
+    font-style: normal;
+}
+
+.loading-background {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    display: none;
+    z-index: 2;
+}
+.loading-container {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #6C4D5F;
+    position: fixed;
+}
+
+.loader {
+  border: 16px solid #f3f3f3; /* Light grey */
+  border-top: 16px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 2s linear infinite;
+  margin: auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.background-fade {
+    background-color: rgba(255, 255, 255, 0.7);
+    width: 100%;
+    position: fixed;
+    height: 100%;
+    z-index: 1;
+    display: none;
+}
+.center-content {
+    text-align: center;
+    margin: auto;
+}
+.m2 {
+    margin-top: 2rem;
+}
+footer {
+    font-size: .6rem;
+    float: right;
+}
+
+/* Baby Luffman gender buttons */
+
+.btn-boy {
+    color: #2f6fb5 !important;
+    background-color: #fff !important;
+    border-color: #6fa8dc !important;
+}
+
+.btn-boy:hover,
+.btn-boy:focus,
+.btn-check:checked + .btn-boy {
+    color: #fff !important;
+    background-color: #6fa8dc !important;
+    border-color: #6fa8dc !important;
+}
+
+
+.btn-girl {
+    color: #d45f93 !important;
+    background-color: #fff !important;
+    border-color: #f4a6c1 !important;
+}
+
+.btn-girl:hover,
+.btn-girl:focus,
+.btn-check:checked + .btn-girl {
+    color: #fff !important;
+    background-color: #f4a6c1 !important;
+    border-color: #f4a6c1 !important;
+}

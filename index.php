@@ -1,5 +1,4 @@
 <?php
-get_header();
 global $wpdb;
 
 $table = $wpdb->prefix . 'guess_list';
@@ -8,6 +7,50 @@ $showResults = get_option('baby_has_arrived');
 $user_guesses = $wpdb->get_results("SELECT * FROM $table ORDER BY respond DESC");
 if($showResults) {
     $user_guesses = $wpdb->get_results("SELECT * FROM $table ORDER BY total_points DESC");
+}
+
+if (isset($_POST['save_predictions'])) {
+
+    check_admin_referer('baby_save_prediction');
+
+    $created_at = date('Y-m-d H:i:s');
+        
+    $weight_grams = 0;
+    $weight_kg = isset($_POST['weight-kg']) ? floatval($_POST['weight-kg']) : 0;
+    $weight_pound = isset($_POST['weight-pound']) ? intval($_POST['weight-pound']) : 0;
+    $weight_ounce = isset($_POST['weight-ounce']) ? intval($_POST['weight-ounce']) : 0;
+
+    if ($weight_kg > 0) {
+        // Metric conversion
+        $weight_grams = round($weight_kg * 1000);
+    } else {
+        // Imperial conversion
+        $weight_grams = round(
+            ($weight_pound * 453.592) +
+            ($weight_ounce * 28.3495)
+        );
+    }
+
+    $result = $wpdb->insert(
+        $wpdb->prefix . 'guess_list',
+        [
+            'name'     => sanitize_text_field($_POST['name']),
+            'gender'   => sanitize_text_field($_POST['gender']),
+            'weight'   => $weight_grams,
+            'length'   => intval($_POST['length']),
+            'arrival'  => $_POST['arrival-datetime'],
+            'respond'  => $created_at,
+        ]
+    );
+    $guess_id = $wpdb->insert_id;
+
+    if ($result === false) {
+        die($wpdb->last_error);
+    }
+    wp_safe_redirect(
+        get_permalink() . '?saved=1&guess=' . $guess_id . '#guesses'
+    );
+    exit;
 }
 
 $stats = $wpdb->get_row("
@@ -61,7 +104,7 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
     }
 
     return '<div class="col-6 col-md-3 mb-3">
-        <div class="border rounded p-3 h-100' . $class .'">
+        <div class="border rounded p-3 h-100 ' . $class .'">
             <div class="small text-muted">'. $header .'</div>
             <div class="fs-5">'. $prediction .'
             <small class="text-muted '.$showSecondaryValue.'">
@@ -76,6 +119,7 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
         </div>
     </div>';
 }
+get_header();
 ?>
 
 <div class="background-fade"></div>
@@ -406,21 +450,32 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
         </div>
     </div>
 
-    <div class="mt-4">
+    <div class="mt-4" id="guesses">
         <h3>All Guesses</h3>
     </div>
+
+    <?php if (isset($_GET['saved'])): ?>
+        <div class="alert alert-success">
+            🎉 Your guess has been submitted successfully!
+        </div>
+    <?php endif; ?>
 
     <!-- Guess Cards -->
     <?php foreach ($user_guesses as $guess) : ?>
     <div class="card shadow-sm mb-3 border-0 shadow-sm prediction-card mt-4">
 
         <div class="card-body">
+            <?php if (isset($_GET['guess']) && $_GET['guess'] == $guess->User_ID): ?>
+                <span class="badge bg-success w-100 mb-2 p-2">
+                    ✨ Your guess
+                </span>
+            <?php endif; ?>
 
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h5 class="mb-0"><?php echo esc_html($guess->name); ?></h5>
-                    <small class="text-muted">
+                    <h5 class="mb-0 text-start"><?php echo esc_html($guess->name); ?></h5>
+                    <small class="text-muted text-start">
                         Submitted
                         <?php echo esc_html(
                             date('j M Y H:i', strtotime($guess->respond))
@@ -446,6 +501,12 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
                     if($guess->gender_correct ? $gender_difference = 0 : $gender_difference = 1);
                     echo create_prediction_card($showResults, 'Gender', ucfirst(esc_html($guess->gender)), null, false, null, $gender_difference, $guess->gender_points, null);
 
+                    //Length Card
+                    $length_guess  = $guess->length . "cm";
+                    $difference_symbol = ($guess->length_difference < 0 ? '+' : '');
+                    $length_difference = $guess->length_difference . "cm";
+                    echo create_prediction_card($showResults, 'Length', $length_guess, null, true, $difference_symbol, $length_difference, $guess->length_points, null);
+
                     //Weight Card
                     $grams = (int)$guess->weight;
                     $lbs = floor($grams / 453.59237);
@@ -456,12 +517,6 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
                     $weight_difference = (round($guess->weight_difference / 1000, 2) * -1) . "kg";
                     echo create_prediction_card($showResults, 'Weight', $weight_guess, $weight_guess_kg, true, $difference_symbol, $weight_difference, $guess->weight_points, null);
 
-                    //Length Card
-                    $length_guess  = $guess->length . "cm";
-                    $difference_symbol = ($guess->length_difference < 0 ? '+' : '');
-                    $length_difference = $guess->length_difference . "cm";
-                    echo create_prediction_card($showResults, 'Length', $length_guess, null, true, $difference_symbol, $length_difference, $guess->length_points, null);
-
                     //Arrival Card
                     $arrival_date_guess  = date('j M Y', strtotime($guess->arrival));
                     $arrival_time_guess  = date('H:i', strtotime($guess->arrival));
@@ -471,7 +526,7 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
                     $day_diff = $guess->arrival_day_difference;
                     $time_diff = $guess->arrival_time_difference;
                     $arrival_difference;
-                    if($arrival_day_diff == 0) {
+                    if($day_diff == 0) {
                         $showSuccess = true;
                         $arrival_difference = "<span class='text-success fw-bold'>✅ Correct date</span><br> 🕑 Time off by " . $time_diff . " hrs";
                     }
@@ -496,10 +551,10 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
     </div>
     <?php endforeach; ?>
 
-    <?php if (!$showResults): ?>
-    <button type="button" class="guess-btn btn btn-success" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Make your guess">
-        + Add your guess
-    </button>
+    <?php if (!$showResults && !isset($_GET['saved'])): ?>
+        <button type="button" class="guess-btn btn btn-success" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Make your guess">
+            + Add your guess
+        </button>
     <?php endif; ?>
 
     <!--Guess drawer-->
@@ -510,9 +565,9 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
-            <form id="sweepstake_input">
+            <form method="post">
 
-                <?php wp_nonce_field('baby_guess_nonce', 'baby_guess_nonce'); ?>
+                <?php wp_nonce_field('baby_save_prediction'); ?>
 
                 <p>No pressure... but remember, the <?php echo esc_html(get_option('family_name', ''));?> family will be checking the leaderboard.</p>
                 <p>Fill out your guesses for Baby <?php echo esc_html(get_option('family_name', ''));?> below and click the submit button when you're finished!</p>
@@ -532,10 +587,7 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
                     </div>
                 </div>
 
-                
-
                 <div class="mb-3">
-
                     <label class="form-label">Weight</label>
 
                     <select class="form-select mb-2" id="weight-unit">
@@ -545,71 +597,51 @@ function create_prediction_card($showResults, $header, $prediction, $secondary_p
 
                     <div id="imperial-weight">
                         <div class="input-group">
-                            <input type="number" min="0" max="20" id="weight-pound" class="form-control">
+                            <input type="number" min="3" max="20" name="weight-pound" class="form-control">
                             <span class="input-group-text">lb</span>
 
-                            <input type="number" min="0" max="15" id="weight-ounce" class="form-control">
+                            <input type="number" min="0" max="15" name="weight-ounce" class="form-control">
                             <span class="input-group-text">oz</span>
                         </div>
                     </div>
 
                     <div id="metric-weight" style="display:none;">
                         <div class="input-group">
-                            <input type="number" step="0.01" min="1" max="8" id="weight-kg" class="form-control">
+                            <input type="number" step="0.01" min="1" max="8" name="weight-kg" class="form-control">
                             <span class="input-group-text">kg</span>
                         </div>
                     </div>
-
                 </div>
 
                 <div class="mb-3">
-
                     <label class="form-label" for="length">
                         Length
                     </label>
 
                     <div class="input-group">
-                        <input type="number" class="form-control" id="length" step="0.1" min="30" max="70" required>
+                        <input type="number" class="form-control" name="length" step="0.1" min="30" max="70" required>
                         <span class="input-group-text">cm</span>
                     </div>
-
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label" for="arrival-datetime">Arrival </label>
-                    <input class="form-control mb-2" type="datetime-local" id="arrival-datetime" required>
+                    <input class="form-control mb-2" type="datetime-local" name="arrival-datetime" required>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label" for="name">Almost done! Who should get the glory if you win?</label>
-                    <input class="form-control" type="text" id="name" name="name" maxlength="40" required>
+                    <input class="form-control" type="text" name="name" name="name" maxlength="40" required>
                     <small><em>Please leave your name so we know which is your guess</em></small>
                 </div>
-            </form>
-        </div>
-        <div class="offcanvas-footer p-3 border-top">
-            <button class="btn btn-success w-100" id="send_guess_btn" data-bs-dismiss="offcanvas">
+
+                <button class="btn btn-success w-100" type="submit" name="save_predictions">
                 🍼 Submit my guess
             </button>
+            </form>
         </div>
     </div>
   </div>
-
-</div>
-
-<div class="loading-background">
-
-    <div class="loading-container">
-
-        <div class="loader"></div>
-
-        <div class="text-center">
-
-            Submitting...
-
-        </div>
-
-    </div>
 
 </div>
 

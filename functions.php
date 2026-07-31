@@ -30,52 +30,6 @@ function styles_scripts_init() {
 }
 add_action( 'wp_enqueue_scripts', 'styles_scripts_init' );
 
-add_action('wp_ajax_save_guess', 'save_guess');
-add_action('wp_ajax_nopriv_save_guess', 'save_guess');
-function save_guess() {
-  global $wpdb;
-
-  if( $_POST['name'] != '') {
-        try {
-            $created_at = date('Y-m-d H:i:s');
-            
-            $weight_grams = 0;
-
-            $weight_kg = isset($_POST['weight_kg']) ? floatval($_POST['weight_kg']) : 0;
-            $weight_pound = isset($_POST['weight_pound']) ? intval($_POST['weight_pound']) : 0;
-            $weight_ounce = isset($_POST['weight_ounce']) ? intval($_POST['weight_ounce']) : 0;
-
-            if ($weight_kg > 0) {
-                // Metric conversion
-                $weight_grams = round($weight_kg * 1000);
-            } else {
-                // Imperial conversion
-                $weight_grams = round(
-                    ($weight_pound * 453.592) +
-                    ($weight_ounce * 28.3495)
-                );
-            }
-
-            $wpdb->insert(
-                'wp_guess_list',
-                array(
-                    'name' => $_POST['name'],
-                    'gender' => $_POST['gender'],
-                    'weight' => $weight_grams,
-                    'length' => $_POST['length'],
-                    'arrival' => $_POST['arrival'],
-                    'respond' => $created_at,
-                )
-            );
-            echo "Success";
-        }
-        catch (Exception $e) {
-            echo "Error";
-        }     
-    }
-    die();
-}
-
 function calculate_baby_sweepstake_results() {
     global $wpdb;
     $table = $wpdb->prefix . 'guess_list';

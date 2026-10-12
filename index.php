@@ -5,9 +5,6 @@ $table = $wpdb->prefix . 'guess_list';
 $showResults = get_option('baby_has_arrived');
 
 $user_guesses = $wpdb->get_results("SELECT * FROM $table ORDER BY respond DESC");
-if($showResults) {
-    $user_guesses = $wpdb->get_results("SELECT * FROM $table ORDER BY total_points DESC");
-}
 
 if (isset($_POST['save_predictions'])) {
 
@@ -83,16 +80,31 @@ if ($stats->total_guesses > 0) {
 
 }
 
-$top_winners = $wpdb->get_results("
-    SELECT *
-    FROM $table
-    ORDER BY total_points DESC,
-    arrival_total_points DESC
-    LIMIT 3
-");
-$weight_winner = $wpdb->get_row("SELECT * FROM $table ORDER BY weight_points DESC LIMIT 1");
-$length_winner = $wpdb->get_row("SELECT * FROM $table ORDER BY length_points DESC LIMIT 1");
-$arrival_winner = $wpdb->get_row("SELECT * FROM $table ORDER BY arrival_total_points DESC LIMIT 1");
+$top_winners = [];
+$weight_winner = null;
+$length_winner = null;
+$arrival_winner = null;
+
+if ($showResults) {
+    $actual_arrival = date('Y-m-d H:i:s', strtotime(get_option('baby_arrival')));
+    $actual_weight = (int)get_option('baby_weight');
+    $actual_length = (int)get_option('baby_length');
+
+    // Highest points first. Ties go to the closest arrival guess (to the minute), then the earliest submission
+    $user_guesses = $wpdb->get_results($wpdb->prepare("
+        SELECT *
+        FROM $table
+        ORDER BY total_points DESC,
+        ABS(TIMESTAMPDIFF(MINUTE, arrival, %s)) ASC,
+        respond ASC
+    ", $actual_arrival));
+    $top_winners = array_slice($user_guesses, 0, 3);
+
+    // Closest predictions are by actual distance, as points bottom out at 0
+    $weight_winner = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table ORDER BY ABS(weight - %d) ASC, respond ASC LIMIT 1", $actual_weight));
+    $length_winner = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table ORDER BY ABS(length - %d) ASC, respond ASC LIMIT 1", $actual_length));
+    $arrival_winner = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table ORDER BY ABS(TIMESTAMPDIFF(MINUTE, arrival, %s)) ASC, respond ASC LIMIT 1", $actual_arrival));
+}
 
 function create_prediction_card($showResults, $header, $prediction, $secondary_prediction, $showDifference, $differenceSymbol, $difference, $differenceMetric, $points, $showSuccess) {
     $showValuesClass = "";
@@ -258,7 +270,7 @@ get_header();
             <h2>🏆 Winner</h2>
             <p>Your total score is the sum of all four categories, with a maximum possible score of <strong><?php echo esc_html(get_option('total_points', '')) ?> points</strong>.</p>
             <p>The person with the <strong>highest total score wins</strong>.</p>
-            <p>If two or more people finish with the same score, the winner will be decided by the closest <strong>Birth Date & Time</strong> prediction.</p>
+            <p>If two or more people finish with the same score, the winner will be decided by the closest <strong>Birth Date & Time</strong> prediction. If it's still a tie, the earliest guess wins.</p>
 
             <p class="text-muted fst-italic mt-4">These rules have been carefully documented to avoid any future <?php echo esc_html(get_option('family_name', ''));?> debates, appeals, VAR reviews or accusations of favouritism. 😂</p>
 
@@ -356,7 +368,7 @@ get_header();
     <?php endif; ?>
 
     <!-- Closest -->
-    <?php if ($showResults): ?>
+    <?php if ($showResults && $arrival_winner): ?>
     <div class="card mt-4 bg-light border-0 shadow-sm">
         <div class="card-body">
             <h2 class="h4">🎯 Closest Predictions</h2>

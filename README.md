@@ -5,10 +5,10 @@ A custom WordPress theme for managing a Baby Sweepstakes competition.
 ## Features
 
 * Custom WordPress theme.
-* Custom database table creation required.
+* Creates its own database table and settings on activation.
 * Stores sweepstakes configuration values.
-* Competition points can be adjusted on the `/result` page.
-* Actual baby details can be added to the `/result` page and calculate guess points.
+* Competition points can be adjusted on the `/settings` page.
+* Actual baby details can be added to the `/settings` page and calculate guess points.
 
 ## Installation
 
@@ -17,20 +17,20 @@ A custom WordPress theme for managing a Baby Sweepstakes competition.
 3. On first activation, the theme will:
 
    * Create the required database table.
-   * Register the required WordPress settings.
-   * Add a **Result** page.
+   * Add default scoring settings (existing values are never overwritten).
+   * Add a **Settings** page at `/settings` (if one doesn't already exist).
 
 ## Database
 
-A custom database table is required called `wp_guess_list`.
+The theme creates a table called `wp_guess_list` (using your site's table prefix). If the table structure changes in a future version, bump `BABY_GUESS_DB_VERSION` in `functions.php` and it will be updated automatically.
 
-The table should contain the following fields:
+The table contains the following fields:
 
 | Field      | Type              | Description               |
 | ---------- | ----------------- | ------------------------- |
 | User_ID    | INT (Primary Key) | Unique record ID          |
-| name       | VARCHAR           | Participant name    |
-| gender     | VARCHAR           | Predicted gender          |
+| name       | TEXT              | Participant name    |
+| gender     | TEXT              | Predicted gender          |
 | gender_points     | INT           | Calculated points          |
 | gender_correct     | BOOLEAN           | Calculated true/false          |
 | weight     | INT           | Predicted birth weight (grams)   |
@@ -44,12 +44,12 @@ The table should contain the following fields:
 | arrival_day_difference | INT             | Calculated difference in prediction (days)      |
 | arrival_time_points | INT             | Calculated points      |
 | arrival_time_difference | INT             | Calculated difference in prediction (hours)      |
-| respond | DATETIME          | Submission timestamp      |
+| respond | TEXT              | Submission timestamp      |
 | total_points | INT          | Sum of all points after calculation      |
 
 ## Settings Page
 
-Make sure a new page is added in the WordPress application called `page-settings`.
+The theme creates this page on activation. It uses the `page-settings.php` template because of its `settings` slug, and only administrators can view it.
 
 **/settings**
 

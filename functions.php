@@ -23,6 +23,93 @@ function styles_scripts_init() {
 }
 add_action( 'wp_enqueue_scripts', 'styles_scripts_init' );
 
+// Bump this when the table structure or default settings change, so existing sites are updated too
+define('BABY_GUESS_DB_VERSION', '1');
+
+// Create the guess table, default settings and the /settings page
+function baby_guess_setup() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'guess_list';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    // dbDelta needs each column on its own line and two spaces after PRIMARY KEY.
+    // Calculated columns default to 0 so guesses save on MySQL servers in strict mode
+    // (defaults must be quoted for dbDelta to spot changes to them)
+    $sql = "CREATE TABLE $table (
+  User_ID int(11) NOT NULL AUTO_INCREMENT,
+  name text NOT NULL,
+  gender text NOT NULL,
+  gender_points int(11) NOT NULL DEFAULT '0',
+  gender_correct tinyint(1) NOT NULL DEFAULT '0',
+  weight int(11) NOT NULL DEFAULT '0',
+  weight_points int(11) DEFAULT NULL,
+  weight_difference int(11) NOT NULL DEFAULT '0',
+  length int(11) NOT NULL DEFAULT '0',
+  length_points int(11) DEFAULT NULL,
+  length_difference int(11) NOT NULL DEFAULT '0',
+  arrival datetime DEFAULT NULL,
+  arrival_date_points int(11) DEFAULT NULL,
+  arrival_day_difference int(11) NOT NULL DEFAULT '0',
+  arrival_time_points int(11) NOT NULL DEFAULT '0',
+  arrival_time_difference int(11) NOT NULL DEFAULT '0',
+  arrival_total_points int(11) NOT NULL DEFAULT '0',
+  respond text NOT NULL,
+  total_points int(11) DEFAULT NULL,
+  PRIMARY KEY  (User_ID)
+) $charset_collate;";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+
+    // Default settings (add_option never overwrites values already saved)
+    $defaults = [
+        'family_name'                  => '',
+        'baby_has_arrived'             => 0,
+        'points_gender_correct'        => 20,
+        'points_gender_incorrect'      => 0,
+        'points_weight_exact'          => 20,
+        'points_weight_gram_deduction' => 60,
+        'points_length_exact'          => 20,
+        'points_length_cm_deduction'   => 1,
+        'points_correct_date'          => 15,
+        'points_day_deduction'         => 3,
+        'points_correct_time'          => 5,
+        'points_time_hr_difference'    => 2,
+        'points_time_hr_deduction'     => 1,
+    ];
+    foreach ($defaults as $option => $value) {
+        add_option($option, $value);
+    }
+    add_option('total_points',
+        (int)get_option('points_gender_correct') +
+        (int)get_option('points_weight_exact') +
+        (int)get_option('points_length_exact') +
+        (int)get_option('points_correct_date') +
+        (int)get_option('points_correct_time')
+    );
+
+    // The settings page uses page-settings.php because of its "settings" slug
+    if (!get_page_by_path('settings')) {
+        wp_insert_post([
+            'post_title'  => 'Settings',
+            'post_name'   => 'settings',
+            'post_type'   => 'page',
+            'post_status' => 'publish',
+        ]);
+    }
+
+    update_option('baby_guess_db_version', BABY_GUESS_DB_VERSION);
+}
+add_action('after_switch_theme', 'baby_guess_setup');
+
+// Also run setup for sites that already had the theme active before this code existed
+function baby_guess_maybe_setup() {
+    if (get_option('baby_guess_db_version') !== BABY_GUESS_DB_VERSION) {
+        baby_guess_setup();
+    }
+}
+add_action('admin_init', 'baby_guess_maybe_setup');
+
 function calculate_baby_sweepstake_results() {
     global $wpdb;
     $table = $wpdb->prefix . 'guess_list';

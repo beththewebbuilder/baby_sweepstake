@@ -3,11 +3,16 @@
 Template Name: Baby Results
 */
 
-get_header();
-
-if (!current_user_can('manage_options')) {
-    wp_die('Sorry, you do not have permission to view this page.');
+// Check permissions before any of the page is output
+if (!is_user_logged_in()) {
+    // Send to the login page, then back here afterwards
+    auth_redirect();
 }
+if (!current_user_can('manage_options')) {
+    wp_die('Sorry, you do not have permission to view this page.', 403);
+}
+
+get_header();
 
 // Save the form
 if (isset($_POST['save_results'])) {

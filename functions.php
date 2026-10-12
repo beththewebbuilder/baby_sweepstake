@@ -112,9 +112,9 @@ function calculate_weight_points($guess, $weight) {
         $total_points = $weight_available_pts;
     }
     else {
-        // Else, deduct 1 point for every full deduction range away (minus an extra point for not being exact)
+        // Else, deduct 1 point for every full deduction range away
         $weight_difference = floor(abs($difference) / $weight_range);
-        $total_points = $weight_available_pts - $weight_difference - 1;
+        $total_points = $weight_available_pts - $weight_difference;
 
         if($total_points < 0) {
             $total_points = 0;
@@ -140,9 +140,9 @@ function calculate_length_points($guess, $length) {
         $total_points = $length_available_pts;
     }
     else {
-        // Else, deduct 1 point for every full deduction range away (minus an extra point for not being exact)
+        // Else, deduct 1 point for every full deduction range away
         $length_difference = floor(abs($difference) / $length_range);
-        $total_points = $length_available_pts - $length_difference - 1;
+        $total_points = $length_available_pts - $length_difference;
 
         if($total_points < 0) {
             $total_points = 0;

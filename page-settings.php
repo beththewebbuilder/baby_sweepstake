@@ -18,7 +18,7 @@ if (isset($_POST['save_results'])) {
     update_option('baby_name', sanitize_text_field($_POST['baby_name']));
     update_option('baby_gender', sanitize_text_field($_POST['gender']));
     update_option('baby_weight', intval($_POST['weight']));      // grams
-    update_option('baby_length', floatval($_POST['length']));    // cm
+    update_option('baby_length', intval($_POST['length']));    // cm
     update_option('baby_arrival', sanitize_text_field($_POST['arrival']));
 
     calculate_baby_sweepstake_results();
@@ -37,7 +37,7 @@ if(isset($_POST['save_points'])) {
     // Deduction ranges are divisors and deductions drive the scoring loops, so they must never be 0
     update_option('points_weight_gram_deduction', max(1, intval($_POST['points_weight_gram_deduction'])));
     update_option('points_length_exact', intval($_POST['points_length_exact']));
-    update_option('points_length_cm_deduction', max(0.1, round(floatval($_POST['points_length_cm_deduction']), 1)));
+    update_option('points_length_cm_deduction', max(1, intval($_POST['points_length_cm_deduction'])));
     update_option('points_correct_date', intval($_POST['points_correct_date']));
     update_option('points_day_deduction', max(1, intval($_POST['points_day_deduction'])));
     update_option('points_correct_time', intval($_POST['points_correct_time']));
@@ -139,7 +139,6 @@ $total_points = get_option('total_points', '');
                     <input
                         class="form-control"
                         type="number"
-                        step="0.1"
                         name="length"
                         value="<?php echo esc_attr($length); ?>"
                         required
@@ -217,7 +216,7 @@ $total_points = get_option('total_points', '');
 
                     <div class="col-12 col-sm-6">
                         <label class="form-label">Length Deduction (cm)</label>
-                        <input class="form-control" type="number" name="points_length_cm_deduction" step="0.1" min="0.1" value="<?php echo esc_attr($length_cm_deduction); ?>" required >
+                        <input class="form-control" type="number" name="points_length_cm_deduction" min="1" value="<?php echo esc_attr($length_cm_deduction); ?>" required >
                         <small id="lengthDeductionHelp" class="form-text text-muted">1 point deducted for every entered length(cm) away from actual.</small>
                     </div>
                 </div>

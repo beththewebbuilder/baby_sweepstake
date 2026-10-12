@@ -37,7 +37,7 @@ if (isset($_POST['save_predictions'])) {
             'name'     => sanitize_text_field($_POST['name']),
             'gender'   => sanitize_text_field($_POST['gender']),
             'weight'   => $weight_grams,
-            'length'   => round(floatval($_POST['length']), 1),
+            'length'   => intval($_POST['length']),
             'arrival'  => $_POST['arrival-datetime'],
             'respond'  => $created_at,
         ]
@@ -650,7 +650,7 @@ get_header();
                     </label>
 
                     <div class="input-group">
-                        <input type="number" class="form-control" name="length" step="0.1" min="30" max="70" required>
+                        <input type="number" class="form-control" name="length" step="1" min="30" max="70" required>
                         <span class="input-group-text">cm</span>
                     </div>
                 </div>

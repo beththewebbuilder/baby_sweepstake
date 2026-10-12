@@ -10,14 +10,29 @@ if (isset($_POST['save_predictions'])) {
 
     check_admin_referer('baby_save_prediction');
 
+    $guess_error = function($code) {
+        wp_safe_redirect(get_permalink() . '?guess_error=' . $code . '#guesses');
+        exit;
+    };
+
+    // No new guesses once the results are out
+    if ($showResults) {
+        $guess_error('closed');
+    }
+
     $created_at = date('Y-m-d H:i:s');
-        
-    $weight_grams = 0;
+
+    $name = isset($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '';
+    $gender = isset($_POST['gender']) ? sanitize_text_field($_POST['gender']) : '';
+    $length = isset($_POST['length']) ? intval($_POST['length']) : 0;
+
+    // Use the unit the guest selected, so a hidden value from the other unit is ignored
+    $weight_unit = isset($_POST['weight-unit']) ? $_POST['weight-unit'] : 'imperial';
     $weight_kg = isset($_POST['weight-kg']) ? floatval($_POST['weight-kg']) : 0;
     $weight_pound = isset($_POST['weight-pound']) ? intval($_POST['weight-pound']) : 0;
     $weight_ounce = isset($_POST['weight-ounce']) ? intval($_POST['weight-ounce']) : 0;
 
-    if ($weight_kg > 0) {
+    if ($weight_unit === 'metric') {
         // Metric conversion
         $weight_grams = round($weight_kg * 1000);
     } else {
@@ -28,14 +43,35 @@ if (isset($_POST['save_predictions'])) {
         );
     }
 
+    // Accept the browser's datetime-local format, with or without seconds
+    $arrival_raw = isset($_POST['arrival-datetime']) ? sanitize_text_field($_POST['arrival-datetime']) : '';
+    $arrival = DateTime::createFromFormat('!Y-m-d\TH:i', $arrival_raw)
+        ?: DateTime::createFromFormat('!Y-m-d\TH:i:s', $arrival_raw);
+
+    // Reject impossible dates that PHP would otherwise roll over (e.g. month 13)
+    if ($arrival && $arrival->format('Y-m-d\TH:i') !== substr($arrival_raw, 0, 16)) {
+        $arrival = false;
+    }
+
+    if ($name === '' || !in_array($gender, ['boy', 'girl'], true)) {
+        $guess_error('missing');
+    }
+    // Matches the form limits: 1kg-8kg or 3lb-20lb 15oz
+    if ($weight_grams < 1000 || $weight_grams > 9500 || $length < 30 || $length > 70) {
+        $guess_error('range');
+    }
+    if (!$arrival) {
+        $guess_error('arrival');
+    }
+
     $result = $wpdb->insert(
         $wpdb->prefix . 'guess_list',
         [
-            'name'     => sanitize_text_field($_POST['name']),
-            'gender'   => sanitize_text_field($_POST['gender']),
+            'name'     => $name,
+            'gender'   => $gender,
             'weight'   => $weight_grams,
-            'length'   => intval($_POST['length']),
-            'arrival'  => $_POST['arrival-datetime'],
+            'length'   => $length,
+            'arrival'  => $arrival->format('Y-m-d H:i:s'),
             'respond'  => $created_at,
         ]
     );
@@ -503,6 +539,24 @@ get_header();
         </div>
     <?php endif; ?>
 
+    <?php
+    $guess_error_messages = [
+        'closed'  => '👶 The baby has arrived, so guesses are now closed!',
+        'missing' => 'Please fill in your name and pick a gender.',
+        'range'   => 'Please check your weight and length guesses - they look a little out of range.',
+        'arrival' => "Please pick a date and time for the baby's arrival.",
+    ];
+    $guess_error_code = isset($_GET['guess_error']) ? sanitize_key($_GET['guess_error']) : '';
+    if (isset($guess_error_messages[$guess_error_code])): ?>
+        <div class="alert alert-danger">
+            <?php echo esc_html($guess_error_messages[$guess_error_code]); ?>
+            <?php if ($guess_error_code !== 'closed'): ?>
+                <br>
+                <small>Your guess wasn't saved - please try again.</small>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
     <!-- Guess Cards -->
     <?php foreach ($user_guesses as $guess) : ?>
     <div class="card shadow-sm mb-3 border-0 shadow-sm prediction-card mt-4">
@@ -600,7 +654,8 @@ get_header();
         </button>
     <?php endif; ?>
 
-    <!--Guess drawer-->
+    <!--Guess drawer (removed once results are out)-->
+    <?php if (!$showResults): ?>
     <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
         
         <div class="offcanvas-header">
@@ -620,9 +675,9 @@ get_header();
                 </button>
 
                 <div class="mb-3 mt-3">
-                    <label class="form-label">Gender</label>
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="gender" id="boy" value="boy">
+                    <label class="form-label" id="gender-label">Gender</label>
+                    <div class="btn-group w-100" role="radiogroup" aria-labelledby="gender-label">
+                        <input type="radio" class="btn-check" name="gender" id="boy" value="boy" required>
                         <label class="btn btn-boy" for="boy">Boy</label>
 
                         <input type="radio" class="btn-check" name="gender" id="girl" value="girl">
@@ -631,26 +686,26 @@ get_header();
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Weight</label>
+                    <label class="form-label" for="weight-unit">Weight</label>
 
-                    <select class="form-select mb-2" id="weight-unit">
+                    <select class="form-select mb-2" id="weight-unit" name="weight-unit">
                         <option value="imperial">lb / oz</option>
                         <option value="metric">kg</option>
                     </select>
 
                     <div id="imperial-weight">
                         <div class="input-group">
-                            <input type="number" min="3" max="20" name="weight-pound" class="form-control">
+                            <input type="number" min="3" max="20" name="weight-pound" id="weight-pound" class="form-control" aria-label="Pounds" required>
                             <span class="input-group-text">lb</span>
 
-                            <input type="number" min="0" max="15" name="weight-ounce" class="form-control">
+                            <input type="number" min="0" max="15" name="weight-ounce" id="weight-ounce" class="form-control" aria-label="Ounces">
                             <span class="input-group-text">oz</span>
                         </div>
                     </div>
 
                     <div id="metric-weight" style="display:none;">
                         <div class="input-group">
-                            <input type="number" step="0.01" min="1" max="8" name="weight-kg" class="form-control">
+                            <input type="number" step="0.01" min="1" max="8" name="weight-kg" id="weight-kg" class="form-control" aria-label="Kilograms">
                             <span class="input-group-text">kg</span>
                         </div>
                     </div>
@@ -662,19 +717,19 @@ get_header();
                     </label>
 
                     <div class="input-group">
-                        <input type="number" class="form-control" name="length" step="1" min="30" max="70" required>
+                        <input type="number" class="form-control" name="length" id="length" step="1" min="30" max="70" required>
                         <span class="input-group-text">cm</span>
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label" for="arrival-datetime">Arrival </label>
-                    <input class="form-control mb-2" type="datetime-local" name="arrival-datetime" required>
+                    <input class="form-control mb-2" type="datetime-local" name="arrival-datetime" id="arrival-datetime" required>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label" for="name">Almost done! Who should get the glory if you win?</label>
-                    <input class="form-control" type="text" name="name" name="name" maxlength="40" required>
+                    <input class="form-control" type="text" name="name" id="name" maxlength="40" required>
                     <small><em>Please leave your name so we know which is your guess</em></small>
                 </div>
 
@@ -684,6 +739,7 @@ get_header();
             </form>
         </div>
     </div>
+    <?php endif; ?>
   </div>
 
 </div>
@@ -697,24 +753,46 @@ get_header();
 <script>
 
     // Show current field when unit selected for weight
+    // Only the visible weight field is required (the form isn't shown once results are out)
     const unit = document.getElementById('weight-unit');
     const imperial = document.getElementById('imperial-weight');
     const metric = document.getElementById('metric-weight');
-    unit.addEventListener('change', function(){
+    const pound = document.getElementById('weight-pound');
+    const kg = document.getElementById('weight-kg');
+    if (unit) unit.addEventListener('change', function(){
 
         if(this.value === "metric"){
 
             imperial.style.display="none";
             metric.style.display="block";
+            pound.required = false;
+            kg.required = true;
 
         }else{
 
             imperial.style.display="block";
             metric.style.display="none";
+            pound.required = true;
+            kg.required = false;
 
         }
 
     });
+
+    <?php if (isset($_GET['saved'], $_GET['guess'])):
+        // Celebrate a newly saved guess in the colours of the gender they picked
+        $saved_gender = $wpdb->get_var($wpdb->prepare("SELECT gender FROM $table WHERE User_ID = %d", $_GET['guess']));
+        $confetti_colors = ($saved_gender === 'girl') ? ['#f4a6c1', '#d45f93'] : ['#6fa8dc', '#2f6fb5'];
+    ?>
+    if (typeof confetti === 'function') {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: <?php echo wp_json_encode($confetti_colors); ?>
+        });
+    }
+    <?php endif; ?>
 
 </script>
 

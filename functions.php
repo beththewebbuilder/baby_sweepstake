@@ -17,15 +17,8 @@ register_nav_menus(array(
   'footer' => __('Footer Menu'),
 ));
 
-add_action('wp_ajax_nopriv_bt_scf', 'bt_scf');
-add_action('wp_ajax_save_bt_scf', 'bt_scf');
-
 function styles_scripts_init() {
     //enqueue stylesheets
-    wp_register_script('script', get_template_directory_uri() . '/script/ajax-script.js', array('jquery'),'',true);
-    wp_localize_script('script','myajax',array('ajaxurl' => admin_url('admin-ajax.php')));
-    wp_enqueue_script('script');
-    
     wp_enqueue_style('style', get_template_directory_uri() . '/style.css');
 }
 add_action( 'wp_enqueue_scripts', 'styles_scripts_init' );

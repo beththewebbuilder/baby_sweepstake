@@ -20,7 +20,8 @@ if (isset($_POST['save_predictions'])) {
         $guess_error('closed');
     }
 
-    $created_at = date('Y-m-d H:i:s');
+    // Site's local time (Europe/London), not UTC
+    $created_at = current_time('mysql');
 
     $name = isset($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '';
     $gender = isset($_POST['gender']) ? sanitize_text_field($_POST['gender']) : '';
@@ -86,6 +87,7 @@ if (isset($_POST['save_predictions'])) {
     exit;
 }
 
+// Average arrival is worked out without MySQL's timezone, so it matches the times as entered
 $stats = $wpdb->get_row("
     SELECT
         COUNT(*) AS total_guesses,
@@ -93,7 +95,7 @@ $stats = $wpdb->get_row("
         SUM(gender = 'boy') AS boys,
         AVG(weight) AS avg_weight,
         AVG(length) AS avg_length,
-        AVG(UNIX_TIMESTAMP(arrival)) AS avg_arrival
+        AVG(TIMESTAMPDIFF(SECOND, '1970-01-01', arrival)) AS avg_arrival
     FROM $table
 ");
 if ($stats->total_guesses > 0) {

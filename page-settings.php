@@ -34,16 +34,18 @@ if(isset($_POST['save_points'])) {
     update_option('points_gender_correct', intval($_POST['points_gender_correct']));
     update_option('points_gender_incorrect', intval($_POST['points_gender_incorrect']));
     update_option('points_weight_exact', intval($_POST['points_weight_exact']));
-    update_option('points_weight_gram_deduction', intval($_POST['points_weight_gram_deduction']));
+    // Deduction ranges are divisors and deductions drive the scoring loops, so they must never be 0
+    update_option('points_weight_gram_deduction', max(1, intval($_POST['points_weight_gram_deduction'])));
     update_option('points_length_exact', intval($_POST['points_length_exact']));
-    update_option('points_length_cm_deduction', intval($_POST['points_length_cm_deduction']));
+    update_option('points_length_cm_deduction', max(0.1, round(floatval($_POST['points_length_cm_deduction']), 1)));
     update_option('points_correct_date', intval($_POST['points_correct_date']));
-    update_option('points_day_deduction', intval($_POST['points_day_deduction']));
+    update_option('points_day_deduction', max(1, intval($_POST['points_day_deduction'])));
     update_option('points_correct_time', intval($_POST['points_correct_time']));
-    update_option('points_time_hr_difference', intval($_POST['points_time_hr_difference']));
-    update_option('points_time_hr_deduction', intval($_POST['points_time_hr_deduction']));
+    update_option('points_time_hr_difference', max(1, intval($_POST['points_time_hr_difference'])));
+    update_option('points_time_hr_deduction', max(1, intval($_POST['points_time_hr_deduction'])));
 
-    $totalPoints = intval($_POST['points_gender_correct']) + intval($_POST['points_gender_incorrect']) + intval($_POST['points_weight_exact']) + intval($_POST['points_length_exact']) + intval($_POST['points_correct_date']) +intval($_POST['points_correct_time']);
+    // Maximum available points (incorrect gender points are not part of the best possible score)
+    $totalPoints = intval($_POST['points_gender_correct']) + intval($_POST['points_weight_exact']) + intval($_POST['points_length_exact']) + intval($_POST['points_correct_date']) +intval($_POST['points_correct_time']);
     update_option('total_points', intval($totalPoints));
 
     echo '<div class="container mt-3"><div class="alert alert-success">🎉 Guess points saved successfully!</div></div>';
@@ -201,7 +203,7 @@ $total_points = get_option('total_points', '');
 
                     <div class="col-12 col-sm-6">
                         <label class="form-label">Weight Deduction (grams)</label>
-                        <input class="form-control" type="number" name="points_weight_gram_deduction" value="<?php echo esc_attr($weight_g_deduction); ?>" required >
+                        <input class="form-control" type="number" name="points_weight_gram_deduction" min="1" value="<?php echo esc_attr($weight_g_deduction); ?>" required >
                         <small id="weightDeductionHelp" class="form-text text-muted">1 point deducted for every [entered g] away from actual.</small>
                     </div>
                 </div>
@@ -215,7 +217,7 @@ $total_points = get_option('total_points', '');
 
                     <div class="col-12 col-sm-6">
                         <label class="form-label">Length Deduction (cm)</label>
-                        <input class="form-control" type="number" name="points_length_cm_deduction" step="0.1" value="<?php echo esc_attr($length_cm_deduction); ?>" required >
+                        <input class="form-control" type="number" name="points_length_cm_deduction" step="0.1" min="0.1" value="<?php echo esc_attr($length_cm_deduction); ?>" required >
                         <small id="lengthDeductionHelp" class="form-text text-muted">1 point deducted for every entered length(cm) away from actual.</small>
                     </div>
                 </div>
@@ -229,7 +231,7 @@ $total_points = get_option('total_points', '');
 
                     <div class="col-12 col-sm-6">
                         <label class="form-label">Day Deduction</label>
-                        <input class="form-control" type="number" name="points_day_deduction" value="<?php echo esc_attr($day_deduction); ?>" required >
+                        <input class="form-control" type="number" name="points_day_deduction" min="1" value="<?php echo esc_attr($day_deduction); ?>" required >
                         <small class="form-text text-muted">Points deducted for every day away from actual. Make sure it's dividable by the total exact date points.</small>
                     </div>
                 </div>
@@ -243,13 +245,13 @@ $total_points = get_option('total_points', '');
 
                     <div class="col-12 col-sm-4">
                         <label class="form-label">Hour Differnce</label>
-                        <input class="form-control" type="number" name="points_time_hr_difference" value="<?php echo esc_attr($time_difference); ?>" required >
+                        <input class="form-control" type="number" name="points_time_hr_difference" min="1" value="<?php echo esc_attr($time_difference); ?>" required >
                         <small class="form-text text-muted">Hours within point deduction range.</small>
                     </div>
 
                     <div class="col-12 col-sm-4">
                         <label class="form-label">Time Deduction</label>
-                        <input class="form-control" type="number" name="points_time_hr_deduction" value="<?php echo esc_attr($time_deduction); ?>" required >
+                        <input class="form-control" type="number" name="points_time_hr_deduction" min="1" value="<?php echo esc_attr($time_deduction); ?>" required >
                         <small class="form-text text-muted">Points deducted for selected no. of hours away.</small>
                     </div>
                 </div>

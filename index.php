@@ -37,7 +37,7 @@ if (isset($_POST['save_predictions'])) {
             'name'     => sanitize_text_field($_POST['name']),
             'gender'   => sanitize_text_field($_POST['gender']),
             'weight'   => $weight_grams,
-            'length'   => intval($_POST['length']),
+            'length'   => round(floatval($_POST['length']), 1),
             'arrival'  => $_POST['arrival-datetime'],
             'respond'  => $created_at,
         ]
@@ -63,12 +63,25 @@ $stats = $wpdb->get_row("
         AVG(UNIX_TIMESTAMP(arrival)) AS avg_arrival
     FROM $table
 ");
-$girl_percentage = round(($stats->girls / $stats->total_guesses) * 100);
-$boy_percentage  = 100 - $girl_percentage;
+if ($stats->total_guesses > 0) {
 
-$average_weight  = round($stats->avg_weight);
-$average_length  = round($stats->avg_length, 1);
-$average_arrival = date('j M Y H:i', round($stats->avg_arrival));
+    $girl_percentage = round(($stats->girls / $stats->total_guesses) * 100);
+    $boy_percentage  = 100 - $girl_percentage;
+
+    $average_weight  = round($stats->avg_weight);
+    $average_length  = round($stats->avg_length, 1);
+    $average_arrival = round($stats->avg_arrival);
+
+} else {
+
+    $girl_percentage = 0;
+    $boy_percentage = 0;
+
+    $average_weight = 0;
+    $average_length = 0;
+    $average_arrival = null;
+
+}
 
 $top_winners = $wpdb->get_results("
     SELECT *
@@ -195,8 +208,8 @@ get_header();
             </p>
             <ul>
                 <?php 
-                $pt = get_option('points_correct_date', '');
-                $deduct = get_option('points_day_deduction', '');
+                $pt = (int)get_option('points_correct_date', 0);
+                $deduct = max(1, (int)get_option('points_day_deduction', 1));
                 $day = 0;
                 $dayWording = "day";
                 while($pt > 0) {
@@ -217,13 +230,13 @@ get_header();
             <p>Only if you have the <strong>correct date</strong>, you can get additional points for the predicted time.</p>
             <ul>
                 <?php 
-                $pt = get_option('points_correct_time', '');
-                $pt_to_deduct = get_option('points_time_hr_deduction', '');
-                $hrs_in_range = get_option('points_time_hr_difference', '');
+                $pt = (int)get_option('points_correct_time', 0);
+                $pt_to_deduct = max(1, (int)get_option('points_time_hr_deduction', 1));
+                $hrs_in_range = max(1, (int)get_option('points_time_hr_difference', 1));
                 $hrs_difference = $hrs_in_range;
-                
+
                 while($pt >= 0) {
-                    if($day == 0) {
+                    if($hrs_difference == $hrs_in_range && $pt > 0) {
                         echo '<li>≤'.$hrs_in_range.' hours from correct birth time: <strong>' . $pt . ' points</strong></li>';
                     }
                     else if($pt == 0) {
@@ -410,10 +423,14 @@ get_header();
                 <div class="col-6 col-md-2">
                     <div class="small text-muted">Average Arrival</div>
                     <div class="fs-5">
-                        <?php echo esc_html(date('j M Y', strtotime($average_arrival))); ?>
-                        <small class="text-muted"> 
-                            <?php echo esc_html(date('H:i', strtotime($average_arrival))); ?>
-                        </small>
+                        <?php if ($average_arrival): ?>
+                            <?php echo esc_html(date('j M Y', $average_arrival)); ?>
+                            <small class="text-muted">
+                                <?php echo esc_html(date('H:i', $average_arrival)); ?>
+                            </small>
+                        <?php else: ?>
+                            <small class="text-muted">No predictions yet</small>
+                        <?php endif; ?>
                     </div>
                 </div>
 

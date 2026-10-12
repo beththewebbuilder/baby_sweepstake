@@ -109,7 +109,7 @@ function calculate_gender_points($guess, $gender) {
 function calculate_weight_points($guess, $weight) {
     $total_points;
     $difference;
-    $weight_range = get_option('points_weight_gram_deduction');
+    $weight_range = max(1, (int)get_option('points_weight_gram_deduction'));
     $weight_available_pts = get_option('points_weight_exact');
 
     $difference = $guess->weight - $weight;
@@ -119,8 +119,8 @@ function calculate_weight_points($guess, $weight) {
         $total_points = $weight_available_pts;
     }
     else {
-        // Else, take the weight difference / deduction range from available points (minus an extra point for not being exact)
-        $weight_difference = 1 * abs(round($difference / $weight_range));
+        // Else, deduct 1 point for every full deduction range away (minus an extra point for not being exact)
+        $weight_difference = floor(abs($difference) / $weight_range);
         $total_points = $weight_available_pts - $weight_difference - 1;
 
         if($total_points < 0) {
@@ -137,18 +137,19 @@ function calculate_weight_points($guess, $weight) {
 function calculate_length_points($guess, $length) {
     $total_points;
     $difference;
-    $length_range = get_option('points_length_cm_deduction');
+    $length_range = max(0.1, (float)get_option('points_length_cm_deduction'));
     $length_available_pts = get_option('points_length_exact');
 
-    $difference = $guess->length - $length;
+    // Round to 1 decimal place to avoid float precision issues (e.g. 50.3 - 50.1)
+    $difference = round($guess->length - $length, 1);
 
     // If exact, get full points
     if($difference == 0) {
         $total_points = $length_available_pts;
     }
     else {
-        // Else, take the length difference / deduction range from available points (minus an extra point for not being exact)
-        $length_difference = 1 * abs(round($difference / $length_range));
+        // Else, deduct 1 point for every full deduction range away (minus an extra point for not being exact)
+        $length_difference = floor(round(abs($difference) / $length_range, 6));
         $total_points = $length_available_pts - $length_difference - 1;
 
         if($total_points < 0) {
@@ -193,7 +194,7 @@ function calculate_arrival_points($guess, $arrival) {
         if($days_apart == 0) {
             $total_time_points = get_option('points_correct_time');
             $time_deduction = get_option('points_time_hr_deduction');
-            $hr_difference = get_option('points_time_hr_difference');
+            $hr_difference = max(1, (int)get_option('points_time_hr_difference'));
 
             $guess_time = new DateTime($arrival);
             $baby_arrival_time= new DateTime($guess->arrival);
@@ -201,7 +202,8 @@ function calculate_arrival_points($guess, $arrival) {
             $difference_time = $guess_time->diff($baby_arrival_time);
             $time_difference = $difference_time->h + ($difference_time->i / 60);
 
-            $total_difference = 1 * abs(round($time_difference / $hr_difference));
+            // Full points within the first range (e.g. ≤2hrs), then deduct for each further range
+            $total_difference = max(0, ceil($time_difference / $hr_difference) - 1);
             $time_points = $total_time_points - ($total_difference * $time_deduction);
 
             if($time_points < 0) {

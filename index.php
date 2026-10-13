@@ -3,6 +3,7 @@ global $wpdb;
 
 $table = $wpdb->prefix . 'guess_list';
 $showResults = get_option('baby_has_arrived');
+$genderEnabled = baby_guess_gender_enabled();
 
 $user_guesses = $wpdb->get_results("SELECT * FROM $table ORDER BY respond DESC");
 
@@ -24,7 +25,7 @@ if (isset($_POST['save_predictions'])) {
     $created_at = current_time('mysql');
 
     $name = isset($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '';
-    $gender = isset($_POST['gender']) ? sanitize_text_field($_POST['gender']) : '';
+    $gender = ($genderEnabled && isset($_POST['gender'])) ? sanitize_text_field($_POST['gender']) : '';
     $length = isset($_POST['length']) ? intval($_POST['length']) : 0;
 
     // Use the unit the guest selected, so a hidden value from the other unit is ignored
@@ -54,7 +55,7 @@ if (isset($_POST['save_predictions'])) {
         $arrival = false;
     }
 
-    if ($name === '' || !in_array($gender, ['boy', 'girl'], true)) {
+    if ($name === '' || ($genderEnabled && !in_array($gender, ['boy', 'girl'], true))) {
         $guess_error('missing');
     }
     // Matches the form limits: 1kg-8kg or 3lb-20lb 15oz
@@ -196,7 +197,7 @@ get_header();
     <?php if (!$showResults): ?>
         <h1>Make your predictions!</h1>
         <p class="subtitle">
-            Guess the <strong>gender</strong>,
+            Guess the <?php if ($genderEnabled): ?><strong>gender</strong>,<?php endif; ?>
             <strong>weight</strong>,
             <strong>length</strong> and
             <strong>arrival</strong> of Baby <?php echo esc_html(get_option('family_name', ''));?>!
@@ -227,11 +228,13 @@ get_header();
             <p>Once the baby arrives, each prediction will be compared with the baby's actual birth details.</p>
             <p>Points are awarded for each category based on <strong>how close your guess is</strong>.</p>
 
+            <?php if ($genderEnabled): ?>
             <h2>👶 Gender</h2>
             <ul>
                 <li>Correct guess: <strong><?php echo esc_html(get_option('points_gender_correct', ''));?> points</strong>
                 <li>Incorrect guess: <strong><?php echo esc_html(get_option('points_gender_incorrect', ''));?> points</strong>
             </ul>
+            <?php endif; ?>
 
             <h2>⚖️ Birth Weight</h2>
             <ul>
@@ -306,7 +309,7 @@ get_header();
             </ul>
 
             <h2>🏆 Winner</h2>
-            <p>Your total score is the sum of all four categories, with a maximum possible score of <strong><?php echo esc_html(get_option('total_points', '')) ?> points</strong>.</p>
+            <p>Your total score is the sum of all <?php echo $genderEnabled ? 'four' : 'three'; ?> categories, with a maximum possible score of <strong><?php echo esc_html(get_option('total_points', '')) ?> points</strong>.</p>
             <p>The person with the <strong>highest total score wins</strong>.</p>
             <p>If two or more people finish with the same score, the winner will be decided by the closest <strong>Birth Date & Time</strong> prediction. If it's still a tie, the earliest guess wins.</p>
 
@@ -330,15 +333,17 @@ get_header();
             <div>
                 <p>The official results of Baby <strong><?php echo get_option('baby_name'); ?></strong> <?php echo esc_html(get_option('family_name', ''));?>'s grand entrance</p>
 
-                <div class="row text-center">
+                <div class="row text-center justify-content-center">
+                    <?php if (get_option('baby_gender')): ?>
                     <div class="col-6 col-md-3">
                         <div class="border rounded p-3 border-lg h-100">
                             <div><strong>Gender</strong></div>
                             <div class="fs-5">
-                                <?php echo ucfirst(get_option('baby_gender')); ?>
+                                <?php echo esc_html(ucfirst(get_option('baby_gender'))); ?>
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
 
                     <div class="col-6 col-md-3">
                         <div class="border rounded p-3 border-lg h-100">
@@ -464,7 +469,7 @@ get_header();
                 <p class="text-muted">Based on all guesses submitted so far...</p>
             <?php endif; ?>
 
-            <div class="row text-center">
+            <div class="row text-center justify-content-center">
                 <div class="col-6 col-md-2">
                     <div class="small text-muted">Total Guesses</div>
                     <div class="fs-5"><?php echo esc_html($stats->total_guesses); ?></div>
@@ -484,6 +489,7 @@ get_header();
                     </div>
                 </div>
 
+                <?php if ($genderEnabled): ?>
                 <div class="col-6 col-md-2 mt-3 mt-md-0">
                     <div class="small text-muted">Girls</div>
                     <div class="fs-5">
@@ -503,6 +509,7 @@ get_header();
                         </small>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <div class="col-6 col-md-2 mt-3 mt-md-0">
                     <div class="small text-muted">Average Length</div>
@@ -544,7 +551,7 @@ get_header();
     <?php
     $guess_error_messages = [
         'closed'  => '👶 The baby has arrived, so guesses are now closed!',
-        'missing' => 'Please fill in your name and pick a gender.',
+        'missing' => $genderEnabled ? 'Please fill in your name and pick a gender.' : 'Please fill in your name.',
         'range'   => 'Please check your weight and length guesses - they look a little out of range.',
         'arrival' => "Please pick a date and time for the baby's arrival.",
     ];
@@ -594,11 +601,13 @@ get_header();
 
             <!-- Their prediction -->
             <!-- create_prediction_card($showResults, $header, $prediction, $secondary_prediction, $showDifference, $differenceSymbol, $difference, differenceMetric, $points, $showSuccess) -->
-            <div class="row text-center">
+            <div class="row text-center justify-content-center">
                 <?php
-                    //Gender Card 
-                    if($guess->gender_correct ? $gender_difference = 0 : $gender_difference = 1);
-                    echo create_prediction_card($showResults, 'Gender', ucfirst(esc_html($guess->gender)), null, false, null, $gender_difference, null, $guess->gender_points, null);
+                    //Gender Card
+                    if ($genderEnabled) {
+                        if($guess->gender_correct ? $gender_difference = 0 : $gender_difference = 1);
+                        echo create_prediction_card($showResults, 'Gender', ucfirst(esc_html($guess->gender)), null, false, null, $gender_difference, null, $guess->gender_points, null);
+                    }
 
                     //Length Card
                     $length_guess  = $guess->length . "cm";
@@ -676,6 +685,7 @@ get_header();
                     <small>How does scoring work?</small>
                 </button>
 
+                <?php if ($genderEnabled): ?>
                 <div class="mb-3 mt-3">
                     <label class="form-label" id="gender-label">Gender</label>
                     <div class="btn-group w-100" role="radiogroup" aria-labelledby="gender-label">
@@ -686,6 +696,7 @@ get_header();
                         <label class="btn btn-girl" for="girl">Girl</label>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <div class="mb-3">
                     <label class="form-label" for="weight-unit">Weight</label>
@@ -746,12 +757,6 @@ get_header();
 
 </div>
 
-<footer>
-
-    Website by favourite auntie 😉
-
-</footer>
-
 <script>
 
     // Show current field when unit selected for weight
@@ -782,9 +787,21 @@ get_header();
     });
 
     <?php if (isset($_GET['saved'], $_GET['guess'])):
-        // Celebrate a newly saved guess in the colours of the gender they picked
+        // Celebrate a newly saved guess in the colours of the gender they picked.
+        // If gender isn't being guessed, use the baby's known gender, or both colours if it hasn't been entered
         $saved_gender = $wpdb->get_var($wpdb->prepare("SELECT gender FROM $table WHERE User_ID = %d", $_GET['guess']));
-        $confetti_colors = ($saved_gender === 'girl') ? ['#f4a6c1', '#d45f93'] : ['#6fa8dc', '#2f6fb5'];
+        if (!$saved_gender) {
+            $saved_gender = get_option('baby_gender');
+        }
+        $girl_colors = ['#f4a6c1', '#d45f93'];
+        $boy_colors = ['#6fa8dc', '#2f6fb5'];
+        if ($saved_gender === 'girl') {
+            $confetti_colors = $girl_colors;
+        } elseif ($saved_gender === 'boy') {
+            $confetti_colors = $boy_colors;
+        } else {
+            $confetti_colors = array_merge($girl_colors, $boy_colors);
+        }
     ?>
     if (typeof confetti === 'function') {
         confetti({

@@ -24,7 +24,21 @@ function styles_scripts_init() {
 add_action( 'wp_enqueue_scripts', 'styles_scripts_init' );
 
 // Bump this when the table structure or default settings change, so existing sites are updated too
-define('BABY_GUESS_DB_VERSION', '1');
+define('BABY_GUESS_DB_VERSION', '2');
+
+// Whether guests are asked to guess the gender (couples who already know can turn it off)
+function baby_guess_gender_enabled() {
+    return (bool)get_option('gender_guess_enabled', 1);
+}
+
+// Maximum available points (incorrect gender points are not part of the best possible score)
+function baby_guess_total_points() {
+    return (baby_guess_gender_enabled() ? (int)get_option('points_gender_correct') : 0) +
+        (int)get_option('points_weight_exact') +
+        (int)get_option('points_length_exact') +
+        (int)get_option('points_correct_date') +
+        (int)get_option('points_correct_time');
+}
 
 // Create the guess table, default settings and the /settings page
 function baby_guess_setup() {
@@ -65,6 +79,7 @@ function baby_guess_setup() {
     $defaults = [
         'family_name'                  => '',
         'baby_has_arrived'             => 0,
+        'gender_guess_enabled'         => 1,
         'points_gender_correct'        => 20,
         'points_gender_incorrect'      => 0,
         'points_weight_exact'          => 20,
@@ -80,13 +95,7 @@ function baby_guess_setup() {
     foreach ($defaults as $option => $value) {
         add_option($option, $value);
     }
-    add_option('total_points',
-        (int)get_option('points_gender_correct') +
-        (int)get_option('points_weight_exact') +
-        (int)get_option('points_length_exact') +
-        (int)get_option('points_correct_date') +
-        (int)get_option('points_correct_time')
-    );
+    add_option('total_points', baby_guess_total_points());
 
     // The settings page uses page-settings.php because of its "settings" slug
     if (!get_page_by_path('settings')) {
@@ -171,7 +180,12 @@ function calculate_gender_points($guess, $gender) {
     $total_points;
     $correct_gender;
 
-    if($gender == $guess->gender) {
+    // No gender points when guests weren't asked to guess it
+    if(!baby_guess_gender_enabled()) {
+        $total_points = 0;
+        $correct_gender = 0;
+    }
+    elseif($gender == $guess->gender) {
         $total_points = get_option('points_gender_correct');
         $correct_gender = 1;
     }
